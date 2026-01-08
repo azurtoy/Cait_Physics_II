@@ -72,7 +72,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
         <div>
           {chapterNumber > 15 && (
             <a
-              href={`/chapter/${chapterNumber - 1}`}
+              href={`/study/chapter/${chapterNumber - 1}`}
               className="btn btn-secondary"
             >
               ← Previous Chapter
@@ -81,7 +81,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
         </div>
         <div>
           <a
-            href="/formulas"
+            href="/study/formulas"
             className="btn btn-secondary"
           >
             📋 View All Formulas
