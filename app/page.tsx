@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, signup } from '@/app/actions/auth';
 import { createClient } from '@/utils/supabase/client';
 
 export default function LoginPage() {
@@ -31,49 +30,51 @@ export default function LoginPage() {
     addLog('🟢 FORM SUBMITTED');
 
     try {
-      addLog('🟡 Calling server action...');
+      const supabase = createClient();
       
-      let result;
       if (isSignUp) {
-        result = await signup(email, password, nickname);
-      } else {
-        result = await login(email, password);
-      }
-
-      addLog(`🟡 Server returned: ${JSON.stringify(result)}`);
-
-      if (!result) {
-        addLog('🔴 ERROR: No result!');
-        setError('Server did not respond');
-        setIsPending(false);
-        return;
-      }
-
-      if (result.success) {
-        addLog('🟢 SUCCESS! Verifying session...');
+        addLog('🟡 Creating account...');
         
-        // Wait for server to process
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { nickname }
+          }
+        });
         
-        // Verify session is actually set
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          addLog('✅ Session verified! Redirecting...');
-          // Session confirmed, now redirect
-          window.location.href = '/station';
-        } else {
-          addLog('⚠️ No session found, retrying...');
-          // Wait a bit more and try again
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          window.location.href = '/station';
+        if (error) {
+          addLog(`🔴 Sign up failed: ${error.message}`);
+          setError(error.message);
+          setIsPending(false);
+          return;
         }
+        
+        addLog('✅ Account created! Redirecting...');
       } else {
-        addLog(`🔴 FAILED: ${result.error}`);
-        setError(result.error || 'Authentication failed');
-        setIsPending(false);
+        addLog('🟡 Logging in...');
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) {
+          addLog(`🔴 Login failed: ${error.message}`);
+          setError(error.message);
+          setIsPending(false);
+          return;
+        }
+        
+        addLog(`✅ Login successful! Session: ${data.session ? 'YES' : 'NO'}`);
       }
+      
+      // Wait a moment for cookies to settle
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      addLog('🚀 Redirecting to /station...');
+      window.location.href = '/station';
+      
     } catch (err: any) {
       addLog(`🔴 EXCEPTION: ${err.message}`);
       setError('An unexpected error occurred');
