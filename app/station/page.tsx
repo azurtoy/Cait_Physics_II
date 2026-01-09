@@ -250,12 +250,9 @@ export default function StationPage() {
               }}
               className="absolute inset-0 m-auto w-48 h-48 rounded-full bg-black/80 backdrop-blur-md border border-white/20 flex flex-col items-center justify-center hover:border-[#FF358B]/50 transition-all group shadow-[0_0_30px_rgba(255,53,139,0.3)]"
             >
-              <h2 className="text-2xl font-light tracking-widest text-white mb-2 uppercase group-hover:text-[#FF358B] transition-colors">
-                PHYSICS
+              <h2 className="text-2xl font-light tracking-widest text-white uppercase group-hover:text-[#FF358B] transition-colors">
+                PHYSICS II
               </h2>
-              <p className="text-xs text-gray-500 tracking-wide">
-                Halliday 12th Ed.
-              </p>
               <div className={`mt-4 w-2 h-2 rounded-full ${
                 isPhysicsUnlocked 
                   ? 'bg-green-500 shadow-[0_0_10px_#10b981]' 

@@ -100,7 +100,17 @@ export default function LoginPage() {
       }
       
       if (!result.data.session) {
-        setError('Session creation failed');
+        if (isSignUp) {
+          // Signup successful but email verification required
+          alert('Account created successfully! Please check your email to verify your account before logging in.');
+          setIsSignUp(false);
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setNickname('');
+        } else {
+          setError('Session creation failed');
+        }
         setIsPending(false);
         return;
       }
