@@ -29,10 +29,9 @@ export default function LoginPage() {
       }
 
       if (result.success) {
-        // Success! Redirect to station
+        // Success! Force full page redirect to station
         console.log('✅ Authentication successful, redirecting to /station');
-        router.push('/station');
-        router.refresh();
+        window.location.href = '/station';
       } else {
         // Error from server
         setError(result.error || 'Authentication failed');
