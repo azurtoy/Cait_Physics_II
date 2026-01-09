@@ -20,14 +20,25 @@ export default function StationPage() {
   const [verifying, setVerifying] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check user session and profile
+  // Check user session and profile - STRICT AUTH CHECK
   useEffect(() => {
     async function checkUser() {
       const supabase = createClient();
+      
+      // Get session first (faster than getUser)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // No session - redirect immediately
+        router.replace('/');
+        return;
+      }
+
+      // Then get user details
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        router.push('/');
+        router.replace('/');
         return;
       }
 
@@ -101,12 +112,13 @@ export default function StationPage() {
   // Current date
   const currentDate = new Date().toLocaleDateString('en-CA');
 
-  if (loading) {
+  // Show nothing while checking auth (prevents flash of content)
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-3 h-3 bg-[#FF358B] rounded-full shadow-[0_0_15px_#FF358B] animate-pulse mx-auto mb-4" />
-          <p className="text-xs text-gray-400 tracking-widest">INITIALIZING...</p>
+          <p className="text-xs text-gray-400 tracking-widest">VERIFYING ACCESS...</p>
         </div>
       </div>
     );

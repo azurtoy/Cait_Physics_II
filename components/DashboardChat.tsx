@@ -17,21 +17,35 @@ export default function DashboardChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('student');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
 
-  // Fetch user
+  // Fetch user and role
   useEffect(() => {
-    async function getUser() {
+    async function getUserAndRole() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
+      if (user) {
+        // Fetch user role from profiles table
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserRole(profile.role || 'student');
+        }
+      }
     }
-    getUser();
+    getUserAndRole();
   }, []);
 
-  // Fetch messages
+  // Fetch messages and subscribe to real-time updates
   useEffect(() => {
     fetchMessages();
     
@@ -41,16 +55,34 @@ export default function DashboardChat() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: 'recipient_id=is.null', // Public messages (no specific recipient)
         },
-        () => {
-          fetchMessages();
+        (payload) => {
+          console.log('New message received:', payload);
+          // Add new message immediately
+          if (payload.new && (payload.new as any).recipient_id === null) {
+            fetchMessages(); // Refetch to get profile data
+          }
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          console.log('Message deleted:', payload);
+          // Remove deleted message immediately
+          setMessages((prev) => prev.filter((msg) => msg.id !== (payload.old as any).id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -84,6 +116,23 @@ export default function DashboardChat() {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
+  };
+
+  const handleDelete = async (messageId: string) => {
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) {
+      console.error('Error deleting message:', error);
+      alert('Failed to delete message');
+    }
+  };
+
+  const canDeleteMessage = (message: Message) => {
+    // User can delete own messages OR admin can delete any message
+    return message.sender_id === user?.id || userRole === 'admin';
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -147,7 +196,7 @@ export default function DashboardChat() {
               }`}
             >
               <div
-                className={`max-w-[80%] px-3 py-2 rounded ${
+                className={`relative max-w-[80%] px-3 py-2 rounded group ${
                   msg.sender_id === user?.id
                     ? 'bg-[#FF358B]/20 border border-[#FF358B]/30'
                     : 'bg-white/5 border border-white/10'
@@ -156,14 +205,30 @@ export default function DashboardChat() {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-semibold text-gray-300">
                     {msg.profiles?.nickname || 'Anonymous'}
+                    {userRole === 'admin' && msg.sender_id !== user?.id && (
+                      <span className="ml-1 text-xs text-orange-400">[Admin View]</span>
+                    )}
                   </span>
                   <span className="text-xs text-gray-500">
                     {formatTime(msg.created_at)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-200 break-words">
+                <p className="text-sm text-gray-200 break-words pr-6">
                   {msg.content}
                 </p>
+                
+                {/* Delete Button (for own messages or admin) */}
+                {canDeleteMessage(msg) && (
+                  <button
+                    onClick={() => handleDelete(msg.id)}
+                    className="absolute top-2 right-2 w-4 h-4 flex items-center justify-center text-gray-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete message"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           ))
