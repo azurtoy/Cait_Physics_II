@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, signup } from '@/app/actions/auth';
+import { createClient } from '@/utils/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,12 +50,25 @@ export default function LoginPage() {
       }
 
       if (result.success) {
-        addLog('🟢 SUCCESS! Redirecting...');
+        addLog('🟢 SUCCESS! Verifying session...');
         
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait for server to process
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        addLog('🚀 Executing window.location.replace...');
-        window.location.replace('/station');
+        // Verify session is actually set
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          addLog('✅ Session verified! Redirecting...');
+          // Session confirmed, now redirect
+          window.location.href = '/station';
+        } else {
+          addLog('⚠️ No session found, retrying...');
+          // Wait a bit more and try again
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          window.location.href = '/station';
+        }
       } else {
         addLog(`🔴 FAILED: ${result.error}`);
         setError(result.error || 'Authentication failed');
