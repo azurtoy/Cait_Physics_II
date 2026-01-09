@@ -16,8 +16,9 @@ export default {
           bg: '#FAFAFA',
           text: '#1a1a1a',
           border: '#E5E5E5',
-          accent: '#2563EB',
-        }
+          accent: '#FF358B',
+        },
+        'lca-pink': '#FF358B',
       },
     },
   },

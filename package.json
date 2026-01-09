@@ -1,6 +1,6 @@
 {
-  "name": "physics-ii-halliday",
-  "version": "0.1.0",
+  "name": "void",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,11 @@
     "react-dom": "^19.0.0",
     "katex": "^0.16.11",
     "react-katex": "^3.0.1",
-    "@giscus/react": "^3.0.0"
+    "react-markdown": "^9.0.1",
+    "remark-math": "^6.0.0",
+    "rehype-katex": "^7.0.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/ssr": "^0.0.10"
   },
   "devDependencies": {
     "@types/node": "^22",

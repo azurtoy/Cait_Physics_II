@@ -1,62 +1,168 @@
-import CourseCard from '@/components/CourseCard';
+'use client';
 
-export default function PortalPage() {
-  const courses = [
-    {
-      id: 'physics-ii',
-      title: 'Physics II',
-      subtitle: 'Winter 2026',
-      description: 'Halliday 12th Edition - Oscillations, Waves, Thermodynamics, Electromagnetism, and Optics',
-      icon: '⚛️',
-    },
-    // Add more courses here in the future
-  ];
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { login, signup } from '@/app/actions/auth';
+
+export default function LoginPage() {
+  const router = useRouter();
+  
+  const [showForm, setShowForm] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsPending(true);
+
+    try {
+      let result;
+      if (isSignUp) {
+        result = await signup(email, password, nickname);
+      } else {
+        result = await login(email, password);
+      }
+
+      if (result.success) {
+        // Success! Route to station
+        router.push('/station');
+      } else {
+        setError(result.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const handleDotClick = () => {
+    setShowForm(!showForm);
+    if (showForm) {
+      // Reset form on close
+      setEmail('');
+      setPassword('');
+      setNickname('');
+      setError('');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            📚 Cait&apos;s Study Archive
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            A personal collection of study materials, formulas, and practice problems
-          </p>
-          <div className="mt-6 inline-block">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm">
-              <span className="text-sm text-gray-500">🔒 Password-protected content</span>
-            </div>
-          </div>
-        </div>
+    <div className="relative flex min-h-screen items-center justify-center bg-white overflow-hidden">
+      
+      {/* The Breathing Dot */}
+      {!showForm && (
+        <button
+          onClick={handleDotClick}
+          className="relative group focus:outline-none"
+        >
+          <div className="w-3 h-3 bg-gray-800 rounded-full animate-pulse shadow-lg hover:scale-110 transition-transform" />
+        </button>
+      )}
 
-        {/* Course List */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Available Courses</h2>
-          {courses.map((course) => (
-            <CourseCard
-              key={course.id}
-              title={course.title}
-              subtitle={course.subtitle}
-              description={course.description}
-              icon={course.icon}
+      {/* The Login/Signup Form */}
+      {showForm && (
+        <div className="w-full max-w-sm px-8 animate-fade-in">
+          
+          {/* Close Button (Dot) */}
+          <div className="flex justify-center mb-8">
+            <button
+              onClick={handleDotClick}
+              className="w-2 h-2 bg-gray-400 rounded-full hover:bg-gray-600 transition-colors"
             />
-          ))}
-        </div>
-
-        {/* Footer Info */}
-        <div className="mt-16 text-center">
-          <div className="inline-block paper-card bg-gray-50 max-w-2xl">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Welcome to My Study Space 👋
-            </h3>
-            <p className="text-sm text-gray-600">
-              This is a private study archive containing course materials, notes, and practice problems.
-              Click on any course card above and enter the password to access the content.
-            </p>
           </div>
+
+          {/* Form Title */}
+          <h1 className="text-center text-2xl font-light tracking-[0.4em] text-gray-800 mb-8">
+            {isSignUp ? 'CREATE SIGNAL' : 'AUTHENTICATE'}
+          </h1>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-light text-gray-600 tracking-wide mb-2">
+                EMAIL
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your.email@lakeheadu.ca"
+                className="w-full px-4 py-3 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
+                required
+              />
+            </div>
+
+            {/* Nickname (Sign Up Only) */}
+            {isSignUp && (
+              <div>
+                <label className="block text-xs font-light text-gray-600 tracking-wide mb-2">
+                  NICKNAME
+                </label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Anonymous ID"
+                  className="w-full px-4 py-3 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
+                  required
+                />
+              </div>
+            )}
+
+            {/* Password */}
+            <div>
+              <label className="block text-xs font-light text-gray-600 tracking-wide mb-2">
+                PASSWORD
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
+                required
+                minLength={6}
+              />
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <p className="text-xs text-red-500 font-light animate-pulse">
+                ⚠ {error}
+              </p>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full py-3 mt-2 bg-gray-800 text-white text-xs font-light tracking-[0.3em] hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              {isPending ? 'PROCESSING...' : (isSignUp ? 'CREATE ACCOUNT' : 'ENTER')}
+            </button>
+
+            {/* Toggle Sign Up / Login */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+              }}
+              className="w-full text-xs text-gray-500 hover:text-gray-800 transition-colors font-light tracking-wide mt-4"
+            >
+              {isSignUp ? 'Already have an account? Log In' : 'Need an account? Sign Up'}
+            </button>
+          </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }

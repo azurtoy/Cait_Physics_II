@@ -5,8 +5,15 @@
 프로젝트 루트에 `.env.local` 파일을 생성하고 다음 내용을 추가하세요:
 
 ```env
-# 사이트 접근 비밀번호 (필수)
-SITE_PASSWORD=your_secure_password_here
+# 과목별 비밀번호 (필수)
+# Physics II
+PHYSICS_PASSWORD=your_physics_password_here
+
+# 다른 과목 추가 시 (선택사항)
+# CALCULUS_PASSWORD=your_calculus_password_here
+
+# 기본 비밀번호 (Fallback, 선택사항)
+SITE_PASSWORD=your_default_password
 
 # Giscus 댓글 설정 (선택사항)
 NEXT_PUBLIC_GISCUS_REPO=your-username/your-repo
@@ -20,10 +27,15 @@ NEXT_PUBLIC_CONTACT_EMAIL=your-email@example.com
 
 ### 필수 설정
 
-#### SITE_PASSWORD
-- 학습 자료에 접근하기 위한 비밀번호입니다.
+#### PHYSICS_PASSWORD
+- Physics II 과목에 접근하기 위한 비밀번호입니다.
 - 원하는 비밀번호로 변경하세요.
-- 예: `SITE_PASSWORD=physics2026`
+- 예: `PHYSICS_PASSWORD=physics2026`
+
+#### 과목별 비밀번호 시스템
+- 각 과목마다 독립적인 비밀번호를 설정할 수 있습니다.
+- 예: `CALCULUS_PASSWORD=calculus2026`
+- 설정되지 않은 경우 `SITE_PASSWORD`가 사용됩니다.
 
 ## 🚀 실행 방법
 

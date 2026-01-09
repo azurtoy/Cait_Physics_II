@@ -3,6 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
 interface Chapter {
   number: number;
   title: string;
@@ -46,34 +50,35 @@ const sectionHeaders = [
   { title: "Optics", chapters: [34, 35, 36] },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
 
-  return (
-    <>
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50 px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-800">Physics II</h1>
-        <p className="text-xs text-gray-500">Halliday 12th Edition</p>
-      </div>
+  const handleClick = () => {
+    if (onNavigate) onNavigate();
+  };
 
-      {/* Sidebar */}
-      <aside className="fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 overflow-y-auto pt-16 lg:pt-0 z-40">
-        <div className="p-6 border-b border-gray-200 hidden lg:block">
-          <Link href="/study">
-            <h1 className="text-xl font-bold text-gray-800 mb-1">Physics II</h1>
+  return (
+    <aside className="h-full w-full bg-white border-r border-gray-200 overflow-y-auto flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <Link href="/study" onClick={handleClick}>
+            <h1 className="text-xl font-bold text-gray-800 mb-1 hover:text-lca-pink transition-colors">
+              Physics II
+            </h1>
             <p className="text-sm text-gray-500">Halliday 12th Ed.</p>
           </Link>
         </div>
 
-        <nav className="p-4">
+        {/* Navigation */}
+        <nav className="flex-1 p-4 overflow-y-auto">
           {/* Formula Sheet Link */}
           <Link
             href="/study/formulas"
+            onClick={handleClick}
             className={`block px-4 py-2.5 mb-4 rounded-lg font-medium transition-colors ${
               pathname === '/study/formulas'
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-700 hover:bg-gray-50'
+                ? 'bg-pink-50 text-lca-pink'
+                : 'text-gray-700 hover:bg-gray-50 hover:text-lca-pink'
             }`}
           >
             📋 Formula Sheet
@@ -92,10 +97,11 @@ export default function Sidebar() {
                     <li key={chapter.number}>
                       <Link
                         href={chapter.path}
+                        onClick={handleClick}
                         className={`block px-4 py-2 rounded-lg text-sm transition-colors ${
                           pathname === chapter.path
-                            ? 'bg-blue-50 text-blue-600 font-medium'
-                            : 'text-gray-700 hover:bg-gray-50'
+                            ? 'bg-pink-50 text-lca-pink font-medium'
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-lca-pink'
                         }`}
                       >
                         <span className="font-medium">Ch. {chapter.number}</span>
@@ -107,7 +113,21 @@ export default function Sidebar() {
             </div>
           ))}
         </nav>
+
+        {/* Home (VOID) Button - Bottom */}
+        <div className="p-4 border-t border-gray-200 mt-auto">
+          <Link
+            href="/"
+            onClick={handleClick}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-[11px] font-extralight tracking-[0.2em] text-gray-700 hover:bg-pink-50 hover:text-lca-pink transition-colors uppercase"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" strokeWidth={1} />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 2v20M2 12h20" opacity="0.3" />
+            </svg>
+            <span>Return to Void</span>
+          </Link>
+        </div>
       </aside>
-    </>
   );
 }

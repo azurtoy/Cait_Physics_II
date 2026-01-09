@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# This is a private archive
+# Search engines are not allowed

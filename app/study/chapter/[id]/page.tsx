@@ -23,7 +23,7 @@ export default async function ChapterPage({ params }: ChapterPageProps) {
     <div className="max-w-5xl mx-auto px-6 py-12">
       {/* Chapter Header */}
       <div className="mb-10">
-        <div className="text-sm text-blue-600 font-semibold mb-2">
+        <div className="text-sm text-lca-pink font-semibold mb-2">
           CHAPTER {chapter.number}
         </div>
         <h1 className="text-4xl font-bold text-gray-900 mb-4">

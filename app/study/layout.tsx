@@ -1,22 +1,231 @@
-import type { Metadata } from "next";
-import Sidebar from "@/components/Sidebar";
+'use client';
 
-export const metadata: Metadata = {
-  title: "Physics II - Halliday 12th Edition",
-  description: "Self-study website for Physics based on Halliday, Resnick & Walker's Fundamentals of Physics, 12th Edition",
-};
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { physicsData } from '@/data/physicsData';
+import { logout } from '@/app/actions/auth';
 
-export default function StudyLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function StudyLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailForm, setEmailForm] = useState({ email: '', message: '' });
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // 로그아웃 핸들러
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  // 이메일 전송 핸들러
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Feedback sent:', emailForm);
+    alert('Signal transmitted successfully!');
+    setShowEmailForm(false);
+    setEmailForm({ email: '', message: '' });
+  };
+
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-0 lg:ml-64">
+    <div className="relative min-h-screen bg-black text-gray-200 overflow-hidden">
+      
+      {/* Moving Starfield Background */}
+      <div className="fixed inset-0 overflow-hidden">
+        {[...Array(150)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-0.5 h-0.5 bg-white rounded-full animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${3 + Math.random() * 4}s`,
+              opacity: Math.random() * 0.8 + 0.2,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Sidebar Overlay (Mobile) */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside 
+        className={`fixed top-0 left-0 h-screen w-72 bg-black/60 backdrop-blur-md border-r border-white/10 z-50 transition-transform duration-300 lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          
+          {/* Header */}
+          <div className="p-6 border-b border-white/10">
+            <Link href="/study" className="block" onClick={() => setSidebarOpen(false)}>
+              <h1 className="text-xl font-light tracking-[0.4em] text-white hover:text-[#FF358B] transition-colors">
+                V O I D
+              </h1>
+            </Link>
+            <p className="mt-2 text-[10px] text-gray-400 tracking-wider">STUDY STATION</p>
+          </div>
+
+          {/* System Status */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="mb-4">
+              <h2 className="text-xs font-light tracking-widest text-gray-400 mb-3">
+                SYSTEM STATUS
+              </h2>
+            </div>
+
+            {/* Chapter List */}
+            <nav className="space-y-1">
+              {physicsData.map((chapter) => {
+                const isActive = pathname === `/study/${chapter.id}`;
+                return (
+                  <Link
+                    key={chapter.id}
+                    href={`/study/${chapter.id}`}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded text-xs font-light tracking-wide transition-all duration-200 ${
+                      isActive
+                        ? 'bg-[#FF358B]/20 text-[#FF358B] border-l-2 border-[#FF358B]'
+                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      isActive ? 'bg-[#FF358B] shadow-[0_0_8px_#FF358B]' : 'bg-gray-600'
+                    }`} />
+                    <span className="flex-1">{chapter.title}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Footer - Formula Sheet & Signal & Logout */}
+          <div className="border-t border-white/10">
+            <Link 
+              href="/study/formulas"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-2 px-6 py-3 text-xs text-gray-300 hover:text-[#FF358B] transition-colors border-b border-white/10"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              Formula Cheat Sheet
+            </Link>
+
+            {/* Signal Button */}
+            <button
+              onClick={() => setShowEmailForm(!showEmailForm)}
+              className="flex items-center gap-2 w-full px-6 py-3 text-xs text-gray-300 hover:text-[#FF358B] transition-colors border-b border-white/10"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+              </svg>
+              Transmit Signal
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-6 py-3 text-xs text-gray-500 hover:text-red-400 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              Exit Station
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-6 left-6 z-50 lg:hidden p-2 bg-black/60 backdrop-blur-md border border-white/10 rounded text-white hover:text-[#FF358B] transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+
+      {/* Main Content */}
+      <main className="lg:ml-72 min-h-screen relative z-10">
         {children}
       </main>
+
+      {/* Email Modal (Global) */}
+      {showEmailForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={() => setShowEmailForm(false)}>
+          <div 
+            className="relative w-full max-w-md bg-black/90 backdrop-blur-md border border-white/20 p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setShowEmailForm(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* 모달 제목 */}
+            <h2 className="mb-6 text-lg font-light tracking-[0.4em] text-center text-white">
+              TRANSMIT SIGNAL
+            </h2>
+
+            {/* 이메일 폼 */}
+            <form onSubmit={handleEmailSubmit} className="flex flex-col gap-4">
+              <div className="border-b border-white/20 focus-within:border-[#FF358B] transition-colors">
+                <input
+                  type="email"
+                  placeholder="Your Email"
+                  value={emailForm.email}
+                  onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
+                  className="w-full py-3 bg-transparent text-sm text-white font-light focus:outline-none placeholder-gray-500"
+                  required
+                />
+              </div>
+
+              <div className="border-b border-white/20 focus-within:border-[#FF358B] transition-colors">
+                <textarea
+                  placeholder="Feedback / Error Report / Suggestion"
+                  value={emailForm.message}
+                  onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+                  className="w-full py-3 bg-transparent text-sm text-white font-light focus:outline-none placeholder-gray-500 resize-none"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              {/* 버튼들 */}
+              <div className="flex gap-3 mt-4">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#FF358B] text-white text-xs font-light tracking-[0.25em] hover:bg-[#E62E7B] transition-all duration-300"
+                >
+                  TRANSMIT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailForm(false)}
+                  className="flex-1 py-2.5 border border-white/20 text-xs font-light tracking-[0.25em] text-gray-300 hover:border-[#FF358B] hover:text-white transition-all duration-300"
+                >
+                  CLOSE
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

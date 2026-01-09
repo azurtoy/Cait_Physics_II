@@ -9,8 +9,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cait's Study Archive",
-  description: "Personal study materials and course notes",
+  title: "V O I D",
+  description: "Private Archive",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export default function RootLayout({

@@ -1,44 +1,101 @@
 'use server';
 
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
 
-export async function authenticateUser(formData: FormData) {
-  try {
-    const password = formData.get('password') as string;
-    const sitePassword = process.env.SITE_PASSWORD || 'default_password';
+export async function login(email: string, password: string) {
+  const supabase = await createClient();
 
-    console.log('Authentication attempt:', { hasPassword: !!password, hasSitePassword: !!sitePassword });
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔐 Login Attempt:');
+  console.log('   Email:', email);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    if (password === sitePassword) {
-      // 쿠키 설정 (7일 유효)
-      const cookieStore = await cookies();
-      cookieStore.set('auth_token', 'authenticated', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-        path: '/',
-      });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-      console.log('Authentication successful, redirecting to /study');
-      redirect('/study');
-    } else {
-      console.log('Authentication failed: wrong password');
-      return { error: '비밀번호가 올바르지 않습니다.' };
-    }
-  } catch (error) {
-    console.error('Authentication error:', error);
-    // redirect throws NEXT_REDIRECT error which is expected
-    if (error && typeof error === 'object' && 'digest' in error) {
-      throw error; // Re-throw redirect errors
-    }
-    return { error: '인증 중 오류가 발생했습니다.' };
+  if (error) {
+    console.error('❌ Login failed:', error.message);
+    return { success: false, error: error.message };
   }
+
+  console.log('✅ Login successful:', data.user?.email);
+
+  revalidatePath('/', 'layout');
+  return { success: true };
+}
+
+export async function signup(email: string, password: string, nickname: string) {
+  const supabase = await createClient();
+
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🆕 Sign Up Attempt:');
+  console.log('   Email:', email);
+  console.log('   Nickname:', nickname);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  // Sign up user
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        nickname,
+      },
+    },
+  });
+
+  if (error) {
+    console.error('❌ Sign up failed:', error.message);
+    return { success: false, error: error.message };
+  }
+
+  if (!data.user) {
+    console.error('❌ No user data returned');
+    return { success: false, error: 'Sign up failed' };
+  }
+
+  // Create profile entry
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert({
+      id: data.user.id,
+      nickname,
+      is_physics_unlocked: false,
+    });
+
+  if (profileError) {
+    console.error('❌ Failed to create profile:', profileError.message);
+    // Profile creation failed - this is a critical error
+    // Note: User account exists but profile wasn't created
+    return { 
+      success: false, 
+      error: 'Failed to create user profile. Please contact support.' 
+    };
+  }
+
+  console.log('✅ Sign up successful:', data.user.email);
+
+  revalidatePath('/', 'layout');
+  return { success: true };
 }
 
 export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.delete('auth_token');
-  redirect('/');
+  const supabase = await createClient();
+  
+  console.log('🚪 Logging out...');
+  
+  const { error } = await supabase.auth.signOut();
+  
+  if (error) {
+    console.error('❌ Logout failed:', error.message);
+    return { success: false, error: error.message };
+  }
+  
+  console.log('✅ Logout successful');
+  
+  revalidatePath('/', 'layout');
+  return { success: true };
 }
