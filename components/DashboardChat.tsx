@@ -23,6 +23,22 @@ export default function DashboardChat() {
 
   const supabase = createClient();
 
+  // Generate consistent color for each user based on their ID
+  const getUserColor = (userId: string) => {
+    const colors = [
+      'bg-[#FF358B]/15 border-[#FF358B]/25', // Light pink
+      'bg-white/8 border-white/15',           // Light grey
+      'bg-white/12 border-white/20',          // Medium grey
+      'bg-gray-800/40 border-gray-700/50',    // Dark grey
+      'bg-purple-900/20 border-purple-800/30', // Light purple
+      'bg-blue-900/20 border-blue-800/30',     // Light blue
+    ];
+    
+    // Use user ID to generate consistent color index
+    const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
   // Fetch user and role
   useEffect(() => {
     async function getUserAndRole() {
@@ -196,11 +212,7 @@ export default function DashboardChat() {
               }`}
             >
               <div
-                className={`relative max-w-[85%] px-2.5 py-1.5 rounded group ${
-                  msg.sender_id === user?.id
-                    ? 'bg-[#FF358B]/20 border border-[#FF358B]/30'
-                    : 'bg-white/5 border border-white/10'
-                }`}
+                className={`relative max-w-[85%] px-2.5 py-1.5 rounded group border ${getUserColor(msg.sender_id)}`}
               >
                 {/* Delete Button - More visible, top-right corner */}
                 {canDeleteMessage(msg) && (
