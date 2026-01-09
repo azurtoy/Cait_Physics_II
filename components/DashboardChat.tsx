@@ -10,7 +10,7 @@ interface Message {
   created_at: string;
   profiles?: {
     nickname: string;
-  };
+  } | null;
 }
 
 export default function DashboardChat() {
@@ -65,7 +65,7 @@ export default function DashboardChat() {
         sender_id,
         content,
         created_at,
-        profiles:sender_id (nickname)
+        profiles!messages_sender_id_fkey (nickname)
       `)
       .is('recipient_id', null) // Public messages only
       .order('created_at', { ascending: true })
@@ -76,7 +76,7 @@ export default function DashboardChat() {
       return;
     }
 
-    setMessages(data || []);
+    setMessages((data as any) || []);
     scrollToBottom();
   };
 
