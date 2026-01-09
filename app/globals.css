@@ -5,8 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* KaTeX CSS */
-@import url('https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css');
+/* KaTeX CSS - Import from local node_modules */
+@import 'katex/dist/katex.min.css';
 
 :root {
   --font-inter: 'Inter', 'Pretendard', system-ui, sans-serif;

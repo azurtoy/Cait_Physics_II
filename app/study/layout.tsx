@@ -10,13 +10,28 @@ export default function StudyLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailForm, setEmailForm] = useState({ email: '', message: '' });
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
   // 로그아웃 핸들러
   const handleLogout = async () => {
-    await logout();
-    router.push('/');
+    setIsLoggingOut(true);
+    try {
+      const result = await logout();
+      
+      if (result.success) {
+        router.push('/');
+      } else {
+        console.error('Logout failed:', result.error);
+        alert(`로그아웃 실패: ${result.error}\n다시 시도해주세요.`);
+        setIsLoggingOut(false);
+      }
+    } catch (error) {
+      console.error('Unexpected logout error:', error);
+      alert('로그아웃 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setIsLoggingOut(false);
+    }
   };
 
   // 이메일 전송 핸들러
@@ -134,12 +149,25 @@ export default function StudyLayout({ children }: { children: React.ReactNode })
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-6 py-3 text-xs text-gray-500 hover:text-red-400 transition-colors"
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 w-full px-6 py-3 text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-              </svg>
-              Exit Station
+              {isLoggingOut ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Exiting...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                  Exit Station
+                </>
+              )}
             </button>
           </div>
         </div>
