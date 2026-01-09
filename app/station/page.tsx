@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import SignalWidget from '@/components/SignalWidget';
+import DashboardChat from '@/components/DashboardChat';
 
 export default function StationPage() {
   const router = useRouter();
@@ -136,45 +137,58 @@ export default function StationPage() {
 
       {/* Header */}
       <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-          {/* Left: Mission + Welcome */}
-          <div className="flex items-center gap-2">
-            {/* Pink Station Dot */}
-            <button
-              onClick={() => setShowManifesto(!showManifesto)}
-              className="w-2 h-2 bg-[#FF358B] rounded-full shadow-[0_0_10px_#FF358B] hover:shadow-[0_0_15px_#FF358B] transition-all mr-3"
-              title="DCEK Manifesto"
-            />
-            <h1 className="text-sm font-light tracking-widest text-white uppercase">
-              SELECT YOUR MISSION
-            </h1>
-            <span className="text-sm font-light text-gray-500">
-              // Welcome, {user?.user_metadata?.nickname || 'Traveler'}
-            </span>
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          {/* Top Row: Mission + Welcome + Actions */}
+          <div className="flex items-center justify-between mb-3">
+            {/* Left: Mission + Welcome */}
+            <div className="flex items-center gap-2">
+              {/* Pink Station Dot */}
+              <button
+                onClick={() => setShowManifesto(!showManifesto)}
+                className="w-2 h-2 bg-[#FF358B] rounded-full shadow-[0_0_10px_#FF358B] hover:shadow-[0_0_15px_#FF358B] transition-all mr-3"
+                title="DCEK Manifesto"
+              />
+              <h1 className="text-sm font-light tracking-widest text-white uppercase">
+                SELECT YOUR MISSION
+              </h1>
+              <span className="text-sm font-light text-gray-500">
+                // Welcome, {user?.user_metadata?.nickname || 'Traveler'}
+              </span>
+            </div>
+
+            {/* Right: My Satellite | Network */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => alert('My Satellite - Coming Soon!')}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-[#FF358B] transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+                <span>My Satellite</span>
+              </button>
+              <span className="text-gray-600">|</span>
+              <button
+                onClick={() => alert('Network - Coming Soon!')}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-[#FF358B] transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+                </svg>
+                <span>Network</span>
+              </button>
+            </div>
           </div>
 
-          {/* Right: My Satellite | Network */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => alert('My Satellite - Coming Soon!')}
-              className="flex items-center gap-2 text-xs text-gray-400 hover:text-[#FF358B] transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              </svg>
-              <span>My Satellite</span>
-            </button>
-            <span className="text-gray-600">|</span>
-            <button
-              onClick={() => alert('Network - Coming Soon!')}
-              className="flex items-center gap-2 text-xs text-gray-400 hover:text-[#FF358B] transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
-              </svg>
-              <span>Network</span>
-            </button>
-          </div>
+          {/* Subtitle: Introduction Text */}
+          <p className="text-sm text-gray-400 leading-relaxed max-w-5xl">
+            Unofficial survival guide for the Physics II crew.{' '}
+            <span className="text-orange-400">
+              Strictly for our current cohort—please keep the passcode secure.
+            </span>{' '}
+            Built by a student, for students. Expect typos, missing sections, and occasional chaos—use at your own risk. 
+            &quot;All models are wrong, but some are useful.&quot; (Alpha Stage / Starting from Ch.15)
+          </p>
         </div>
 
         {/* DCEK Manifesto - Slide Down */}
@@ -260,27 +274,10 @@ export default function StationPage() {
             </button>
           </div>
 
-          {/* Introduction - Below Planet */}
+          {/* Live Chat - Below Planet */}
           {showIntro && (
-            <div className="mt-8 max-w-lg mx-auto p-6 bg-black/60 backdrop-blur-md border border-white/20 animate-fade-in">
-              <h3 className="text-sm font-light tracking-widest text-[#FF358B] mb-4 uppercase text-center">
-                System Notice
-              </h3>
-              <div className="text-sm text-gray-200 font-light leading-relaxed space-y-3 mb-4">
-                <p>
-                  This is an unofficial survival guide built by a student, for students. 
-                  Expect typos, missing sections, and occasional chaos—use at your own risk.
-                </p>
-                <p className="text-xs text-gray-400 italic">
-                  "All models are wrong, but some are useful."
-                </p>
-              </div>
-              <div className="text-xs text-pink-500 font-light leading-relaxed border-t border-white/10 pt-4">
-                <p>
-                  ⚠ Currently in early Alpha/Beta stage. Content is being gradually added, starting from Chapter 15 (Oscillations). 
-                  Use at your own risk.
-                </p>
-              </div>
+            <div className="mt-8 max-w-2xl mx-auto p-6 bg-black/60 backdrop-blur-md border border-white/20 animate-fade-in">
+              <DashboardChat />
             </div>
           )}
 
