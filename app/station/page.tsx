@@ -184,14 +184,13 @@ export default function StationPage() {
               <h2 className="text-lg font-light tracking-widest text-[#FF358B] mb-4 uppercase">
                 DCEK Manifesto
               </h2>
-              <p className="text-sm text-gray-300 leading-relaxed mb-4">
-                This is an unofficial survival guide built by a student, for students. 
-                Expect typos, missing sections, and occasional chaos—use at your own risk. 
-                "All models are wrong, but some are useful."
-              </p>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Future subjects may be added based on demand and availability. 
-                Currently in Alpha stage with Chapter 15 (Oscillations) as the starting point.
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Unofficial survival guide for the Physics II crew.{' '}
+                <span className="text-orange-400">
+                  Strictly for our current cohort—please keep the passcode secure.
+                </span>{' '}
+                Built by a student, for students. Expect typos, missing sections, and occasional chaos—use at your own risk. 
+                &quot;All models are wrong, but some are useful.&quot; (Alpha Stage / Starting from Ch.15)
               </p>
             </div>
           </div>
