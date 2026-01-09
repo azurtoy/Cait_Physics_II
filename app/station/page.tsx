@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { verifyAccessCode } from '@/app/actions/station';
 
 export default function StationPage() {
   const router = useRouter();
@@ -53,18 +52,38 @@ export default function StationPage() {
     setVerifying(true);
 
     try {
-      const result = await verifyAccessCode(accessCode);
+      // Check access code client-side
+      const correctCode = '1234'; // TODO: Get from env
       
-      if (result.success) {
-        setIsPhysicsUnlocked(true);
-        setShowAccessInput(false);
-        setAccessCode('');
-      } else {
+      if (accessCode !== correctCode) {
         setError('⚠ INVALID ACCESS CODE');
+        setVerifying(false);
+        return;
       }
+      
+      // Update profile in database
+      const supabase = createClient();
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ is_physics_unlocked: true })
+        .eq('id', user.id);
+      
+      if (updateError) {
+        console.error('Failed to update profile:', updateError);
+        setError('⚠ VERIFICATION FAILED');
+        setVerifying(false);
+        return;
+      }
+      
+      // Success!
+      setIsPhysicsUnlocked(true);
+      setShowAccessInput(false);
+      setAccessCode('');
+      setVerifying(false);
+      
     } catch (err) {
+      console.error('Exception:', err);
       setError('⚠ VERIFICATION FAILED');
-    } finally {
       setVerifying(false);
     }
   };

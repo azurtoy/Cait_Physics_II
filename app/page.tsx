@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { login, signup } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,52 +14,47 @@ export default function LoginPage() {
   const [nickname, setNickname] = useState('');
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState('');
-  const [debugLog, setDebugLog] = useState<string[]>([]);
-
-  const addLog = (msg: string) => {
-    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
-    console.log(msg);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setDebugLog([]);
     setIsPending(true);
     
-    addLog('🟢 FORM SUBMITTED');
-
     try {
-      addLog('🟡 Calling server action...');
+      const supabase = createClient();
       
       let result;
       if (isSignUp) {
-        result = await signup(email, password, nickname);
+        result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { nickname },
+          },
+        });
       } else {
-        result = await login(email, password);
+        result = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
       }
       
-      addLog(`📥 Server response: ${JSON.stringify(result)}`);
-      
-      if (!result || !result.success) {
-        addLog(`🔴 Failed: ${result?.error || 'Unknown error'}`);
-        setError(result?.error || 'Authentication failed');
+      if (result.error) {
+        setError(result.error.message);
         setIsPending(false);
         return;
       }
       
-      addLog('✅ Server confirmed login!');
-      addLog('⏳ Waiting for session to propagate...');
+      if (!result.data.session) {
+        setError('Session creation failed');
+        setIsPending(false);
+        return;
+      }
       
-      // Wait for server-set cookies to be available
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      addLog('🔄 Reloading page...');
-      // Reload - proxy will see cookies and redirect to /station
-      window.location.reload();
+      // Supabase auto-saves to localStorage, redirect immediately
+      window.location.href = '/station';
       
     } catch (err: any) {
-      addLog(`🔴 EXCEPTION: ${err.message}`);
       setError('An unexpected error occurred');
       setIsPending(false);
     }
@@ -158,18 +152,9 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Debug Log */}
-            {debugLog.length > 0 && (
-              <div className="text-xs bg-gray-100 p-3 rounded max-h-32 overflow-y-auto font-mono">
-                {debugLog.map((log, i) => (
-                  <div key={i}>{log}</div>
-                ))}
-              </div>
-            )}
-
             {/* Error Message */}
             {error && (
-              <p className="text-xs text-red-500 font-light animate-pulse">
+              <p className="text-xs text-red-500 font-light">
                 ⚠ {error}
               </p>
             )}
