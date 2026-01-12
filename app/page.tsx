@@ -225,18 +225,15 @@ export default function LoginPage() {
     e.preventDefault();
     
     // 에러가 있으면 즉시 중단 (에러 초기화하지 않음)
-    if (emailError || (isSignUp && nicknameError)) {
+    if (emailError || (isSignUp && nicknameError) || passwordError) {
       return;
     }
     
-    setError('');
-    
-    // 최종 검증
-    validateEmail(email);
-    if (isSignUp) {
-      validateNicknameLocal(nickname);
+    // 로그인 시 이메일이나 비밀번호가 비어있는지 확인
+    if (!isSignUp && (!email || !password)) {
+      setError('⚠ Missing email or password');
+      return;
     }
-    validatePassword(password);
     
     // 회원가입 모드에서 비밀번호 확인 검증
     if (isSignUp && password !== confirmPassword) {
@@ -244,9 +241,7 @@ export default function LoginPage() {
       return;
     }
     
-    if (emailError || (isSignUp && nicknameError) || passwordError) {
-      return;
-    }
+    setError('');
     
     setIsPending(true);
     
@@ -269,13 +264,6 @@ export default function LoginPage() {
           },
         });
       } else {
-        // 로그인 시 이메일이나 비밀번호가 비어있는지 확인
-        if (!email || !password) {
-          setError('⚠ Missing email or password');
-          setIsPending(false);
-          return;
-        }
-        
         result = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -607,7 +595,21 @@ export default function LoginPage() {
               Account created successfully! Please check your email to verify your account before logging in.
             </p>
             <button
-              onClick={() => router.push('/')}
+              onClick={() => {
+                // 폼 초기화
+                setEmail('');
+                setPassword('');
+                setConfirmPassword('');
+                setNickname('');
+                setError('');
+                setEmailError('');
+                setPasswordError('');
+                setNicknameError('');
+                setShowSuccessModal(false);
+                setIsSignUp(false);
+                // 메인 페이지로 이동
+                router.push('/');
+              }}
               className="w-full py-3 border border-gray-800 text-xs font-light tracking-wide text-gray-800 hover:bg-gray-800 hover:text-white transition-colors"
             >
               CONFIRM
