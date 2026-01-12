@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('');
   const [nicknameError, setNicknameError] = useState('');
   const [checkingNickname, setCheckingNickname] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -60,7 +61,7 @@ export default function LoginPage() {
   const validateNicknameLocal = useCallback((value: string) => {
     if (!value) {
       setNicknameError((prev) => {
-        if (prev === '⚠ Nickname must be 2-10 characters' || 
+        if (prev === '⚠ Nickname must be 2-15 characters' || 
             prev === '⚠ Unauthorized characters detected') {
           return '';
         }
@@ -69,9 +70,9 @@ export default function LoginPage() {
       return false;
     }
 
-    // 길이 검증 (2-10자)
-    if (value.length < 2 || value.length > 10) {
-      setNicknameError('⚠ Nickname must be 2-10 characters');
+    // 길이 검증 (2-15자)
+    if (value.length < 2 || value.length > 15) {
+      setNicknameError('⚠ Nickname must be 2-15 characters');
       return false;
     }
 
@@ -84,7 +85,7 @@ export default function LoginPage() {
 
     // 로컬 검증 통과 시 로컬 검증 관련 에러만 지움
     setNicknameError((prev) => {
-      if (prev === '⚠ Nickname must be 2-10 characters' || 
+      if (prev === '⚠ Nickname must be 2-15 characters' || 
           prev === '⚠ Unauthorized characters detected') {
         return '';
       }
@@ -105,13 +106,60 @@ export default function LoginPage() {
       return;
     }
 
+    if (value.length > 20) {
+      setPasswordError('⚠ Access key too long (max 20)');
+      return;
+    }
+
     setPasswordError('');
   }, []);
 
-  // 이메일 실시간 검증
+  // 이메일 실시간 검증 (로컬)
   useEffect(() => {
     validateEmail(email);
   }, [email, validateEmail]);
+
+  // 이메일 중복 체크 (Debounce) - 회원가입 모드에서만
+  useEffect(() => {
+    if (!isSignUp || !email) {
+      setCheckingEmail(false);
+      return;
+    }
+
+    // 로컬 검증 통과 여부 확인 (형식, 도메인 체크)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || !email.endsWith('@lakeheadu.ca')) {
+      setCheckingEmail(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      console.log('Checking Email:', email);
+      setCheckingEmail(true);
+      const supabase = createClient();
+      
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingUser) {
+        setEmailError('⚠ Email already registered');
+      } else {
+        setEmailError((prev) => {
+          if (prev === '⚠ Email already registered') {
+            return '';
+          }
+          return prev;
+        });
+      }
+      
+      setCheckingEmail(false);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [email, isSignUp]);
 
   // 닉네임 로컬 검증 (실시간)
   useEffect(() => {
@@ -128,7 +176,7 @@ export default function LoginPage() {
     }
 
     // 로컬 검증 통과 여부 확인
-    const isLengthValid = nickname.length >= 2 && nickname.length <= 10;
+    const isLengthValid = nickname.length >= 2 && nickname.length <= 15;
     const nicknameRegex = /^[a-zA-Z0-9_]+$/;
     const hasValidChars = nicknameRegex.test(nickname);
 
@@ -175,6 +223,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 에러가 있으면 즉시 중단 (에러 초기화하지 않음)
+    if (emailError || (isSignUp && nicknameError)) {
+      return;
+    }
+    
     setError('');
     
     // 최종 검증
@@ -201,6 +255,12 @@ export default function LoginPage() {
       
       let result;
       if (isSignUp) {
+        // auth.signUp 전에 이메일 중복 에러 재확인
+        if (emailError) {
+          setIsPending(false);
+          return;
+        }
+        
         result = await supabase.auth.signUp({
           email,
           password,
@@ -209,6 +269,13 @@ export default function LoginPage() {
           },
         });
       } else {
+        // 로그인 시 이메일이나 비밀번호가 비어있는지 확인
+        if (!email || !password) {
+          setError('⚠ Missing email or password');
+          setIsPending(false);
+          return;
+        }
+        
         result = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -242,7 +309,7 @@ export default function LoginPage() {
             ]);
 
             if (profileError) {
-              console.error('Profile Error:', profileError);
+              console.error('Profile Error:', profileError.message || JSON.stringify(profileError));
               setError('Failed to create profile');
               setIsPending(false);
               return;
