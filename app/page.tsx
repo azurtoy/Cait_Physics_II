@@ -231,7 +231,7 @@ export default function LoginPage() {
     
     // 로그인 시 이메일이나 비밀번호가 비어있는지 확인
     if (!isSignUp && (!email || !password)) {
-      setError('⚠ Missing email or password');
+      setError('Missing email or password');
       return;
     }
     
