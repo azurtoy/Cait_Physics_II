@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import SignalWidget from '@/components/SignalWidget';
@@ -18,57 +18,179 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [nicknameError, setNicknameError] = useState('');
+  const [checkingNickname, setCheckingNickname] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Email validation
-  const validateEmail = (email: string) => {
-    // For signup, only allow @lakeheadu.ca
-    // For login, allow @lakeheadu.ca and @gmail.com (admin)
+  // Email validation (실시간)
+  const validateEmail = useCallback((value: string) => {
+    if (!value) {
+      setEmailError('');
+      return;
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      setEmailError('⚠ Invalid email format');
+      return;
+    }
+
+    // 회원가입 모드에서는 @lakeheadu.ca만 허용
     if (isSignUp) {
-      if (!email.endsWith('@lakeheadu.ca')) {
+      if (!value.endsWith('@lakeheadu.ca')) {
         setEmailError('⚠ Lakehead University email required');
-        return false;
+        return;
       }
     } else {
-      // Login: allow both @lakeheadu.ca and @gmail.com
-      if (!email.endsWith('@lakeheadu.ca') && !email.endsWith('@gmail.com')) {
+      // 로그인 모드: @lakeheadu.ca와 @gmail.com 허용
+      if (!value.endsWith('@lakeheadu.ca') && !value.endsWith('@gmail.com')) {
         setEmailError('⚠ Invalid email domain');
-        return false;
+        return;
       }
     }
-    setEmailError('');
-    return true;
-  };
 
-  // Password validation
-  const validatePassword = () => {
-    if (isSignUp && password !== confirmPassword) {
-      setPasswordError('⚠ Passwords do not match');
+    setEmailError('');
+  }, [isSignUp]);
+
+  // 닉네임 로컬 검증 (길이, 특수문자)
+  const validateNicknameLocal = useCallback((value: string) => {
+    if (!value) {
+      setNicknameError((prev) => {
+        if (prev === '⚠ Nickname must be 2-10 characters' || 
+            prev === '⚠ Unauthorized characters detected') {
+          return '';
+        }
+        return prev;
+      });
       return false;
     }
-    if (password.length < 6) {
-      setPasswordError('⚠ Password must be at least 6 characters');
+
+    // 길이 검증 (2-10자)
+    if (value.length < 2 || value.length > 10) {
+      setNicknameError('⚠ Nickname must be 2-10 characters');
       return false;
     }
-    setPasswordError('');
+
+    // 특수문자 검증 (영문자, 숫자, 언더스코어만 허용)
+    const nicknameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!nicknameRegex.test(value)) {
+      setNicknameError('⚠ Unauthorized characters detected');
+      return false;
+    }
+
+    // 로컬 검증 통과 시 로컬 검증 관련 에러만 지움
+    setNicknameError((prev) => {
+      if (prev === '⚠ Nickname must be 2-10 characters' || 
+          prev === '⚠ Unauthorized characters detected') {
+        return '';
+      }
+      return prev;
+    });
     return true;
-  };
+  }, []);
+
+  // Password validation (실시간)
+  const validatePassword = useCallback((value: string) => {
+    if (!value) {
+      setPasswordError('');
+      return;
+    }
+
+    if (value.length < 6) {
+      setPasswordError('⚠ Password too short (min 6)');
+      return;
+    }
+
+    setPasswordError('');
+  }, []);
+
+  // 이메일 실시간 검증
+  useEffect(() => {
+    validateEmail(email);
+  }, [email, validateEmail]);
+
+  // 닉네임 로컬 검증 (실시간)
+  useEffect(() => {
+    if (isSignUp) {
+      validateNicknameLocal(nickname);
+    }
+  }, [nickname, isSignUp, validateNicknameLocal]);
+
+  // 닉네임 중복 체크 (Debounce) - 회원가입 모드에서만
+  useEffect(() => {
+    if (!isSignUp || !nickname) {
+      setCheckingNickname(false);
+      return;
+    }
+
+    // 로컬 검증 통과 여부 확인
+    const isLengthValid = nickname.length >= 2 && nickname.length <= 10;
+    const nicknameRegex = /^[a-zA-Z0-9_]+$/;
+    const hasValidChars = nicknameRegex.test(nickname);
+
+    // 로컬 검증 실패 시 중복 체크하지 않음
+    if (!isLengthValid || !hasValidChars) {
+      setCheckingNickname(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      console.log('Checking Nickname:', nickname);
+      setCheckingNickname(true);
+      const supabase = createClient();
+      
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('lower_nickname')
+        .eq('lower_nickname', nickname.toLowerCase())
+        .maybeSingle();
+
+      if (existingUser) {
+        setNicknameError('⚠ Nickname already in use');
+      } else {
+        setNicknameError((prev) => {
+          if (prev === '⚠ Nickname already in use') {
+            return '';
+          }
+          return prev;
+        });
+      }
+      
+      setCheckingNickname(false);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [nickname, isSignUp]);
+
+  // 비밀번호 실시간 검증
+  useEffect(() => {
+    if (isSignUp || password) {
+      validatePassword(password);
+    }
+  }, [password, isSignUp, validatePassword]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setEmailError('');
-    setPasswordError('');
     
-    // Validate email
-    if (!validateEmail(email)) {
+    // 최종 검증
+    validateEmail(email);
+    if (isSignUp) {
+      validateNicknameLocal(nickname);
+    }
+    validatePassword(password);
+    
+    // 회원가입 모드에서 비밀번호 확인 검증
+    if (isSignUp && password !== confirmPassword) {
+      setPasswordError('⚠ Passwords do not match');
       return;
     }
     
-    // Validate password
-    if (!validatePassword()) {
+    if (emailError || (isSignUp && nicknameError) || passwordError) {
       return;
     }
     
@@ -94,7 +216,13 @@ export default function LoginPage() {
       }
       
       if (result.error) {
-        setError(result.error.message);
+        // 이메일 중복 체크
+        if (result.error.message.includes('already registered') || 
+            result.error.message.includes('User already registered')) {
+          setEmailError('⚠ Email already registered');
+        } else {
+          setError(result.error.message);
+        }
         setIsPending(false);
         return;
       }
@@ -102,12 +230,27 @@ export default function LoginPage() {
       if (!result.data.session) {
         if (isSignUp) {
           // Signup successful but email verification required
-          alert('Account created successfully! Please check your email to verify your account before logging in.');
-          setIsSignUp(false);
-          setEmail('');
-          setPassword('');
-          setConfirmPassword('');
-          setNickname('');
+          // profiles 테이블에 데이터 insert
+          if (result.data.user) {
+            const { error: profileError } = await supabase.from('profiles').insert([
+              {
+                id: result.data.user.id,
+                nickname: nickname,
+                lower_nickname: nickname.toLowerCase(),
+                email: email
+              },
+            ]);
+
+            if (profileError) {
+              console.error('Profile Error:', profileError);
+              setError('Failed to create profile');
+              setIsPending(false);
+              return;
+            }
+          }
+          
+          setShowSuccessModal(true);
+          setIsPending(false);
         } else {
           setError('Session creation failed');
         }
@@ -140,6 +283,7 @@ export default function LoginPage() {
       setError('');
       setEmailError('');
       setPasswordError('');
+      setNicknameError('');
     }
   };
 
@@ -201,17 +345,14 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError('');
-                }}
-                onBlur={(e) => validateEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@lakeheadu.ca"
                 className="w-full px-4 py-3 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
                 required
+                suppressHydrationWarning
               />
               {emailError && (
-                <p className="text-xs text-[#FF358B] font-light mt-1">
+                <p className="text-xs text-[#ec4899] font-light mt-1">
                   {emailError}
                 </p>
               )}
@@ -233,12 +374,22 @@ export default function LoginPage() {
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="Anonymous ID"
-                  className="w-full px-4 py-3 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
+                  className={`w-full px-4 py-3 border text-sm text-gray-800 focus:outline-none transition-colors ${
+                    nicknameError ? 'border-[#ec4899]' : 'border-gray-300 focus:border-gray-600'
+                  }`}
                   required
+                  suppressHydrationWarning
                 />
-                <p className="text-xs text-gray-400 font-light mt-1">
-                  Anonymous, but offensive names will be forcibly changed by DCEK.
-                </p>
+                {nicknameError && (
+                  <p className="text-xs text-[#ec4899] font-light mt-1">
+                    {nicknameError}
+                  </p>
+                )}
+                {!nicknameError && (
+                  <p className="text-xs text-gray-400 font-light mt-1">
+                    Anonymous, but offensive names will be forcibly changed by DCEK.
+                  </p>
+                )}
               </div>
             )}
 
@@ -251,14 +402,12 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setPasswordError('');
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-4 py-3 pr-10 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
                   required
                   minLength={6}
+                  suppressHydrationWarning
                 />
                 <button
                   type="button"
@@ -289,14 +438,12 @@ export default function LoginPage() {
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setPasswordError('');
-                    }}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full px-4 py-3 pr-10 border border-gray-300 text-sm text-gray-800 focus:outline-none focus:border-gray-600 transition-colors"
                     required
                     minLength={6}
+                    suppressHydrationWarning
                   />
                   <button
                     type="button"
@@ -320,14 +467,14 @@ export default function LoginPage() {
 
             {/* Password Error */}
             {passwordError && (
-              <p className="text-xs text-[#FF358B] font-light">
+              <p className="text-xs text-[#ec4899] font-light mt-1">
                 {passwordError}
               </p>
             )}
 
             {/* General Error Message */}
             {error && (
-              <p className="text-xs text-[#FF358B] font-light">
+              <p className="text-xs text-[#ec4899] font-light">
                 ⚠ {error}
               </p>
             )}
@@ -360,6 +507,7 @@ export default function LoginPage() {
                 setError('');
                 setEmailError('');
                 setPasswordError('');
+                setNicknameError('');
                 setConfirmPassword('');
               }}
               className="w-full text-xs text-gray-500 hover:text-gray-800 transition-colors font-light tracking-wide mt-6"
@@ -380,6 +528,26 @@ export default function LoginPage() {
           }
         }
       `}</style>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white border border-gray-300 p-8 shadow-lg text-center">
+            <h2 className="text-xl font-light tracking-[0.3em] text-gray-800 mb-4">
+              INITIALIZATION SUCCESSFUL
+            </h2>
+            <p className="text-xs text-gray-600 font-light mb-6">
+              Account created successfully! Please check your email to verify your account before logging in.
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="w-full py-3 border border-gray-800 text-xs font-light tracking-wide text-gray-800 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              CONFIRM
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

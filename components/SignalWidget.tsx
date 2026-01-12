@@ -21,6 +21,7 @@ export default function SignalWidget() {
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-black/50 backdrop-blur-md border border-white/30 shadow-lg hover:bg-white hover:text-black transition-all group"
         title="Transmit Signal"
+        suppressHydrationWarning
       >
         <svg 
           xmlns="http://www.w3.org/2000/svg" 
@@ -48,6 +49,7 @@ export default function SignalWidget() {
           <button
             onClick={() => setIsOpen(false)}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors"
+            suppressHydrationWarning
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -93,6 +95,7 @@ export default function SignalWidget() {
             <button
               type="submit"
               className="w-full py-4 mt-2 flex items-center justify-center gap-2 group"
+              suppressHydrationWarning
             >
               <div className="w-3 h-3 bg-gray-800 transition-all duration-300 group-hover:shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
               <div className="w-3 h-3 bg-gray-800 transition-all duration-300 group-hover:shadow-[0_0_10px_rgba(0,0,0,0.5)]" />
