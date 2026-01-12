@@ -260,6 +260,54 @@ export default async function proxy(request: NextRequest) {
       console.log('⚠️ Middleware: No user session found');
     }
 
+    // 1. [인바운드 락] 로그인된 유저가 루트(/)에 접근 시 강제로 /station으로 리다이렉트
+    if (user && pathname === '/') {
+      console.log('🔒 Inbound Lock: Authenticated user attempting to access root, redirecting to /station');
+      try {
+        const redirectResponse = NextResponse.redirect(new URL('/station', request.url));
+        
+        // supabaseResponse의 모든 쿠키를 단 하나도 빠짐없이 복사
+        // Supabase 세션 유지를 위해 모든 속성을 하드코딩하여 유실 방지
+        try {
+          supabaseResponse.cookies.getAll().forEach((cookie) => {
+            try {
+              redirectResponse.cookies.set(cookie.name, cookie.value, {
+                path: '/', // 명시적 설정
+                maxAge: 60 * 60 * 24 * 7, // 7일 (Supabase 기본값)
+                sameSite: 'lax', // 명시적 설정
+                secure: false, // localhost에서는 false
+                httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : true, // httpOnly 유지
+                ...cookie, // 기타 속성 유지
+              });
+            } catch (e) {
+              console.error('❌ Failed to set cookie:', cookie.name, e);
+            }
+          });
+        } catch (e) {
+          console.error('❌ Failed to copy cookies:', e);
+        }
+        
+        // supabaseResponse의 모든 헤더를 완벽하게 복사
+        // Set-Cookie 헤더는 여러 개일 수 있으므로 append 사용
+        try {
+          supabaseResponse.headers.forEach((value, key) => {
+            try {
+              redirectResponse.headers.append(key, value);
+            } catch (e) {
+              console.error('❌ Failed to append header:', key, e);
+            }
+          });
+        } catch (e) {
+          console.error('❌ Failed to copy headers:', e);
+        }
+        
+        return redirectResponse;
+      } catch (e) {
+        console.error('❌ Failed to create redirect response:', e);
+        return supabaseResponse;
+      }
+    }
+
     // 2. [핵심] 비로그인 유저가 스테이션 진입 시 차단
     if (!user && pathname.startsWith('/station')) {
       try {
@@ -307,52 +355,6 @@ export default async function proxy(request: NextRequest) {
       }
     }
 
-    // 3. 이미 로그인된 유저가 로그인 페이지 진입 시 자동으로 스테이션 이동
-    if (user && pathname === '/') {
-      try {
-        const redirectResponse = NextResponse.redirect(new URL('/station', request.url));
-        
-        // supabaseResponse의 모든 쿠키를 단 하나도 빠짐없이 복사
-        // Supabase 세션 유지를 위해 모든 속성을 하드코딩하여 유실 방지
-        try {
-          supabaseResponse.cookies.getAll().forEach((cookie) => {
-            try {
-              redirectResponse.cookies.set(cookie.name, cookie.value, {
-                path: '/', // 명시적 설정
-                maxAge: 60 * 60 * 24 * 7, // 7일 (Supabase 기본값)
-                sameSite: 'lax', // 명시적 설정
-                secure: false, // localhost에서는 false
-                httpOnly: cookie.httpOnly !== undefined ? cookie.httpOnly : true, // httpOnly 유지
-                ...cookie, // 기타 속성 유지
-              });
-            } catch (e) {
-              console.error('❌ Failed to set cookie:', cookie.name, e);
-            }
-          });
-        } catch (e) {
-          console.error('❌ Failed to copy cookies:', e);
-        }
-        
-        // supabaseResponse의 모든 헤더를 완벽하게 복사
-        // Set-Cookie 헤더는 여러 개일 수 있으므로 append 사용
-        try {
-          supabaseResponse.headers.forEach((value, key) => {
-            try {
-              redirectResponse.headers.append(key, value);
-            } catch (e) {
-              console.error('❌ Failed to append header:', key, e);
-            }
-          });
-        } catch (e) {
-          console.error('❌ Failed to copy headers:', e);
-        }
-        
-        return redirectResponse;
-      } catch (e) {
-        console.error('❌ Failed to create redirect response:', e);
-        return supabaseResponse;
-      }
-    }
 
     return supabaseResponse;
   } catch (error: any) {
